@@ -1,0 +1,38 @@
+# =============================================================
+# Docker Compose Configuration - SIMPLIFIED
+# Uses External Database Server (No Local PostgreSQL)
+# =============================================================
+
+version: '3.8'
+
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: postgres-recovery-simulator
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=145.79.10.205
+      - DB_PORT=5432
+      - DB_NAME=basdatbackup
+      - DB_USER=dbPro
+      - DB_PASSWORD=Ky7zboJPHIV7fcJIv71CKp7kkLgtDGJTH8chwAeWr6uJfuuv2efL2wIfwbl2twLg
+      - APP_ENV=development
+      - APP_DEBUG=true
+    networks:
+      - simulator-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/controller.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  simulator-network:
+    driver: bridge

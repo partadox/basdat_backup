@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Recovery Simulator - Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .query-test { background: white; padding: 10px; margin: 5px 0; border-left: 4px solid #007bff; }
+        .expected { color: #28a745; }
+        .error { color: #dc3545; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; margin: 5px; border-radius: 3px; cursor: pointer; }
+        #results { background: #333; color: #0f0; padding: 15px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 PostgreSQL Recovery Simulator - Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>📋 Test Scenarios</h2>
+        <p>This page tests the fixes for the reported bugs:</p>
+        <ul>
+            <li>✅ Step validation based on actual database output</li>
+            <li>✅ PostgreSQL-like query result formatting</li>
+            <li>✅ Complete step requirements before advancing</li>
+            <li>✅ Proper query execution and response handling</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Step 1: Damage Assessment Tests</h2>
+        <div class="query-test">
+            <strong>Test 1.1:</strong> COUNT flash_sale_products (Expected: 0 records)
+            <button onclick="testQuery('SELECT COUNT(*) FROM flash_sale_products')">Test Query</button>
+            <div class="expected">Expected: COUNT(*) = 0, should mark as CRITICAL</div>
+        </div>
+        
+        <div class="query-test">
+            <strong>Test 1.2:</strong> COUNT orders (Expected: >0 records, some corrupted)
+            <button onclick="testQuery('SELECT COUNT(*) FROM orders')">Test Query</button>
+            <div class="expected">Expected: COUNT(*) > 0, should warn about corruption</div>
+        </div>
+        
+        <div class="query-test">
+            <strong>Test 1.3:</strong> COUNT transactions (Expected: partial data)
+            <button onclick="testQuery('SELECT COUNT(*) FROM transactions')">Test Query</button>
+            <div class="expected">Expected: COUNT(*) < expected, should warn about missing data</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Step 2: Backup Check Tests</h2>
+        <div class="query-test">
+            <strong>Test 2.1:</strong> Check available backups
+            <button onclick="testQuery('SELECT * FROM backup_data')">Test Query</button>
+            <div class="expected">Expected: Should show flash_sale_products_backup is available</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📥 Step 3: Restore Tests</h2>
+        <div class="query-test">
+            <strong>Test 3.1:</strong> Restore flash sale products
+            <button onclick="testQuery('RESTORE flash_sale_products')">Test Query</button>
+            <div class="expected">Expected: Should execute restore operation successfully</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Step 4: Validation Tests</h2>
+        <div class="query-test">
+            <strong>Test 4.1:</strong> Count restored records
+            <button onclick="testQuery('SELECT COUNT(*) FROM flash_sale_products')">Test Query</button>
+            <div class="expected">Expected: COUNT(*) = 4 (after restore)</div>
+        </div>
+        
+        <div class="query-test">
+            <strong>Test 4.2:</strong> Check restored data content
+            <button onclick="testQuery('SELECT * FROM flash_sale_products LIMIT 3')">Test Query</button>
+            <div class="expected">Expected: Should show 3 flash sale product records with proper structure</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🚀 Step 5: System Recovery Tests</h2>
+        <div class="query-test">
+            <strong>Test 5.1:</strong> Update system status
+            <button onclick="testQuery(\"UPDATE system_status SET status = 'OPERATIONAL'\")">Test Query</button>
+            <div class="expected">Expected: Should mark system as operational</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🚫 Security Tests</h2>
+        <div class="query-test">
+            <strong>Security Test 1:</strong> Try dangerous INSERT
+            <button onclick="testQuery('INSERT INTO users VALUES (999, \\'hacker\\', \\'evil@hack.com\\')')">Test Query</button>
+            <div class="error">Expected: Should be blocked for security reasons</div>
+        </div>
+        
+        <div class="query-test">
+            <strong>Security Test 2:</strong> Try dangerous DROP
+            <button onclick="testQuery('DROP TABLE users')">Test Query</button>
+            <div class="error">Expected: Should be blocked for security reasons</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Test Results</h2>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <div id="results">Ready to run tests...</div>
+    </div>
+
+    <script>
+        const API_BASE_URL = './controller.php';
+        
+        async function testQuery(query) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.textContent += `\n\n🔍 Testing: ${query}\n`;
+            resultsDiv.textContent += '─'.repeat(50) + '\n';
+            
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'query',
+                        query: query
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultsDiv.textContent += '✅ SUCCESS\n';
+                    if (result.data && result.data.length > 0) {
+                        resultsDiv.textContent += 'Database Output:\n';
+                        resultsDiv.textContent += formatDatabaseOutput(result.data) + '\n';
+                    }
+                    if (result.message) {
+                        resultsDiv.textContent += 'Message: ' + result.message + '\n';
+                    }
+                } else {
+                    resultsDiv.textContent += '❌ ERROR\n';
+                    resultsDiv.textContent += 'Error: ' + (result.error || 'Unknown error') + '\n';
+                    if (result.message) {
+                        resultsDiv.textContent += 'Message: ' + result.message + '\n';
+                    }
+                }
+                
+            } catch (error) {
+                resultsDiv.textContent += '💥 CONNECTION ERROR\n';
+                resultsDiv.textContent += 'Error: ' + error.message + '\n';
+            }
+            
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function formatDatabaseOutput(data) {
+            if (!data || data.length === 0) {
+                return "(0 rows)";
+            }
+            
+            const columns = Object.keys(data[0]);
+            const columnWidths = {};
+            
+            columns.forEach(col => {
+                columnWidths[col] = Math.max(
+                    col.length,
+                    ...data.map(row => String(row[col] || '').length)
+                );
+            });
+            
+            let output = '';
+            output += columns.map(col => col.padEnd(columnWidths[col])).join(' | ') + '\n';
+            output += columns.map(col => '-'.repeat(columnWidths[col])).join('-+-') + '\n';
+            
+            data.forEach(row => {
+                output += columns.map(col => String(row[col] || '').padEnd(columnWidths[col])).join(' | ') + '\n';
+            });
+            
+            output += `(${data.length} row${data.length !== 1 ? 's' : ''})`;
+            return output;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').textContent = 'Results cleared. Ready for testing...';
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.textContent = '🚀 Running comprehensive test suite...\n';
+            
+            const tests = [
+                'SELECT COUNT(*) FROM flash_sale_products',
+                'SELECT COUNT(*) FROM orders', 
+                'SELECT COUNT(*) FROM transactions',
+                'SELECT * FROM backup_data',
+                'RESTORE flash_sale_products',
+                'SELECT COUNT(*) FROM flash_sale_products',
+                'SELECT * FROM flash_sale_products LIMIT 3',
+                "UPDATE system_status SET status = 'OPERATIONAL'",
+                'INSERT INTO users VALUES (999, \\'hacker\\', \\'evil@hack.com\\')',
+                'DROP TABLE users'
+            ];
+            
+            for (let i = 0; i < tests.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between tests
+                await testQuery(tests[i]);
+            }
+            
+            resultsDiv.textContent += '\n\n🎉 All tests completed!';
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>

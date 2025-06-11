@@ -1,0 +1,39 @@
+# =============================================================
+# Coolify Deployment Configuration
+# =============================================================
+
+# Build Configuration
+build:
+  context: .
+  dockerfile: Dockerfile
+
+# Port Configuration
+ports:
+  - "80:80"
+
+# Environment Variables for Coolify
+environment:
+  APP_ENV: production
+  APP_DEBUG: false
+  APP_NAME: "PostgreSQL Recovery Simulator"
+  
+# Health Check
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost/controller.php"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+
+# Restart Policy
+restart: unless-stopped
+
+# Resource Limits
+deploy:
+  resources:
+    limits:
+      memory: 512M
+      cpus: '0.5'
+    reservations:
+      memory: 256M
+      cpus: '0.25'

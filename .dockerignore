@@ -1,0 +1,41 @@
+# =============================================================
+# Docker Ignore File
+# =============================================================
+
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Development files
+docker-compose.yml
+.dockerignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node modules (if any)
+node_modules/
+
+# Cache files
+.cache/
+*.cache
